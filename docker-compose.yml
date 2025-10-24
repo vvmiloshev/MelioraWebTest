@@ -1,0 +1,59 @@
+services:
+  laravel-app:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: laravel
+      QUEUE_CONNECTION: database
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook/ad-script-agent
+      N8N_BEARER_TOKEN: supersecret-n8n-token
+      CALLBACK_BEARER_TOKEN: supersecret-callback-token
+    volumes:
+      - ./laravel:/var/www/html
+    depends_on:
+      - mysql
+      - n8n
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin
+      N8N_HOST: n8n
+      WEBHOOK_URL: http://n8n:5678
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  mysql_data:
+  n8n_data:

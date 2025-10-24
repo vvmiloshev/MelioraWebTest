@@ -1,0 +1,238 @@
+{
+  "name": "Ad Script AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ad-script-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "10c69508-16cb-4d49-a110-e76fc31e90c9",
+      "name": "Webhook",
+      "webhookId": "c20da99a-a3cc-4c5f-ad03-e4618c1093a3"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Take payload from Webhook -> it's under `json.body`\nconst inJson = $input.item.json;\nconst data = inJson?.body ?? {};\n\nconst reference = data.reference_script ?? '';\nconst goal = data.outcome_description ?? '';\n\nreturn {\n  json: {\n    prompt: `You are an advertising copy expert.\nAnalyze the following ad script and rewrite it according to this goal:\n\nReference script:\n${reference}\n\nGoal:\n${goal}\n\nReturn ONLY valid JSON in the following format:\n{\n  \"analysis\": \"<short summary of what changed>\",\n  \"new_script\": \"<rewritten ad script>\"\n}`,\n    task_id: data.task_id,\n    callback_url: data.callback_url,\n    callback_token: data.callback_token,\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "824cc86f-12bb-42f6-88e0-5ef212ea46ac",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        112
+      ],
+      "id": "f02342d4-a9b0-4aaf-8b56-fac045a3b0c3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "uSP5M1uuTTaKATrV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "={{$json.prompt}}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "a1ccec1f-07ae-466f-b49e-5154546d69ba",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// @ts-nocheck\n\n// 1) AI output (LLM Chain returns { text })\nconst response = $input.item.json.text ?? '';\nlet parsed = {};\ntry {\n  parsed = JSON.parse(response);\n} catch (e) {\n  const m = response.match(/\\{[\\s\\S]*\\}/);\n  parsed = m ? JSON.parse(m[0]) : { analysis: 'Could not parse AI response', new_script: response };\n}\n\n// 2) Вземи meta от предния Code node (където бяха callback_* и task_id)\nconst idx = $itemIndex ?? 0;\nconst meta = $items('Code in JavaScript', 0)[idx].json;\n\nreturn {\n  json: {\n    task_id: meta.task_id,\n    new_script: parsed.new_script ?? '',\n    analysis: parsed.analysis ?? '',\n    callback_url: meta.callback_url,\n    callback_token: meta.callback_token,\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -96
+      ],
+      "id": "c11cb374-9c1e-416b-8eaf-bff8b610d90a",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.callback_url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$json.callback_token}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{$json.task_id}}"
+            },
+            {
+              "name": "new_script",
+              "value": "={{$json.new_script}}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{$json.analysis}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1008,
+        -96
+      ],
+      "id": "0d395e7b-dc63-4d5b-bb41-3a803713bb20",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"task_id\": \"={{$json.task_id}}\",\n  \"status\": \"processing\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1216,
+        -96
+      ],
+      "id": "7f86dcbd-b6ec-42be-9696-f9c07b5c131a",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dd2c298e-d9ed-4983-ae11-86edd72f7418",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "81efb9784fa60143e0e9efae9f96c594ab041d974e3d0aa849cc02b4e7612491"
+  },
+  "id": "JRVQ74HNNvu9RkHE",
+  "tags": []
+}
