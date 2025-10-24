@@ -38,6 +38,6 @@ return [
         'slack_failures' => env('N8N_SLACK_WEBHOOK_URL'),
     ],
     'callbacks' => [
-        'bearer_token' => env('CALLBACKS_BEARER_TOKEN'),
+        'bearer_token' => env('CALLBACK_BEARER_TOKEN'),
     ],
 ];
