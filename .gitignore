@@ -18,4 +18,4 @@ Homestead.yaml
 Homestead.json
 npm-debug.log
 yarn-error.log
-!/laravel/tests/
+!/laravel/tests/*
