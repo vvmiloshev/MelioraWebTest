@@ -17,7 +17,7 @@ The goal:
 ```mermaid
 graph LR
     A[Laravel App<br/>POST /api/ad-scripts] --> B[n8n<br/>AI Workflow]
-    B --> C[Laravel App<br/>Callback<br/>/api/ad-scripts/{id}/result]
+    B --> C[Laravel App<br/>Callback<br/>/api/ad-scripts/&#123;id&#125;/result]
 ```
 
 ### Components
