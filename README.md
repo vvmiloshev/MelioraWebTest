@@ -13,7 +13,7 @@ The goal:
 ### System Diagram (Mermaid)
 ```mermaid
 flowchart LR
-    A[Laravel API + Job] -- "POST /api/ad-scripts" --> B[n8n (AI Workflow)]
+    A[Laravel API + Job] -- "POST /api/ad-scripts" --> B[n8n ("AI Workflow")]
     B -- "POST /api/ad-scripts/{id}/result" --> C[Laravel Callback]
 ```
 
