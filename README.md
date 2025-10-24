@@ -109,12 +109,11 @@ Ad Script AI Agent
 Structure
 ```mermaid
 graph TD
-    A[Webhook<br/>(ad-script-agent)] --> B[Code<br/>(Prepare Prompt)]
-    B --> C[Basic LLM Chain<br/>(OpenAI GPT-4o)]
-    C --> D[Code<br/>(Parse AI Result)]
-    D --> E[HTTP Request<br/>(Callback → Laravel)]
+    A[Webhook\n(ad-script-agent)] --> B[Code\n(Prepare Prompt)]
+    B --> C[Basic LLM Chain\n(OpenAI GPT-4o)]
+    C --> D[Code\n(Parse AI Result)]
+    D --> E[HTTP Request\n(Callback → Laravel)]
     E --> F[Respond to Webhook]
-
 ```
 
 Workflow URL
