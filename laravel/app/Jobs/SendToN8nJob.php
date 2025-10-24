@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SendToN8nJob implements ShouldQueue
 {
@@ -23,42 +24,70 @@ class SendToN8nJob implements ShouldQueue
 
     public function handle(): void
     {
-        $task = AdScriptTask::findOrFail($this->taskId);
+        $task = AdScriptTask::find($this->taskId);
+        if (! $task) {
+            return;
+        }
 
-        $task->update(['status' => 'processing']);
+        $base  = config('services.n8n.base_url') ?? env('N8N_BASE_URL', '');
+        $path  = config('services.n8n.webhook_path') ?? env('N8N_WEBHOOK_PATH', 'ad-script-agent');
+        $token = config('services.n8n.token') ?? env('N8N_API_TOKEN');
 
-        $url   = config('services.n8n.webhook_url');
-        $token = config('services.n8n.bearer_token');
-
-        // Сглоби URL от APP_URL, за да избегнем проблеми с именувани маршрути
-        $base = rtrim(config('app.url'), '/'); // трябва да е http://host.docker.internal:8000
-        $callbackUrl = "{$base}/api/ad-scripts/{$task->id}/result";
+        $url = rtrim($base, '/').'/'.ltrim($path, '/');
 
         $payload = [
             'task_id'             => $task->id,
             'reference_script'    => $task->reference_script,
             'outcome_description' => $task->outcome_description,
-            'callback_url'        => $callbackUrl,
-            'callback_token'      => config('services.callbacks.bearer_token'),
         ];
 
-        $resp = Http::withToken($token)->timeout(60)->post($url, $payload);
+        try {
+            $request = Http::timeout(10);
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+            Log::info('N8N URL', ['url' => $url]);
+            $response = $request->post($url, $payload);
 
-        if (! $resp->successful()) {
-            $task->update([
-                'status' => 'failed',
-                'error'  => "HTTP {$resp->status()}: {$resp->body()}",
+            Log::info('N8N RESPONSE', [
+                'status' => $response->status(),
+                'body' => $response->body(),
             ]);
+
+
+            $status = $response->status();
+            if ($status >= 400) {
+                $this->markFailed($task, 'HTTP '.$status.': '.$response->body());
+                return; // за да не паднем в LOG "done" с pending
+            }
+
+
+        } catch (\Throwable $e) {
+            $this->markFailed($task, $e->getMessage());
+            return;
         }
+
+        Log::info('JOB DONE OK', ['task_id' => $task->id]);
     }
 
+    private function markFailed(AdScriptTask $task, string $details): void
+    {
+        $task->update([
+            'status'        => 'failed',
+            'error_details' => $details,
+        ]);
+        Log::info('JOB MARKED FAILED', [
+            'task_id' => $task->id,
+            'status'  => 'failed',
+        ]);
+    }
 
     public function failed(\Throwable $e): void
     {
         if ($task = AdScriptTask::find($this->taskId)) {
             $task->update([
-                'status' => 'failed',
-                'error'  => $e->getMessage(),
+                'status'        => 'failed',
+                'error_details' => $e->getMessage(),
             ]);
         }
     }

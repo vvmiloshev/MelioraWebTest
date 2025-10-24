@@ -32,11 +32,11 @@ return [
     ],
 
     'n8n' => [
-        'webhook_url' => env('N8N_WEBHOOK_URL'),
-        'bearer_token' => env('N8N_BEARER_TOKEN'),
+        'base_url'     => env('N8N_BASE_URL'),
+        'webhook_path' => env('N8N_WEBHOOK_PATH', 'ad-script-agent'),
+        'token'        => env('N8N_API_TOKEN'),
     ],
-
     'callbacks' => [
-        'bearer_token' => env('CALLBACK_BEARER_TOKEN'),
+        'bearer_token' => env('CALLBACKS_BEARER_TOKEN'),
     ],
 ];

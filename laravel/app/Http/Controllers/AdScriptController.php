@@ -12,20 +12,29 @@ use Symfony\Component\HttpFoundation\Response;
 class AdScriptController extends Controller
 {
     // POST /api/ad-scripts
-    public function store(StoreAdScriptRequest $request): JsonResponse
+    public function store(Request $request)
     {
-        $task = AdScriptTask::create([
-            'reference_script' => $request->input('reference_script'),
-            'outcome_description' => $request->input('outcome_description'),
-            'status' => 'pending',
+        // Validate
+        $data = $request->validate([
+            'reference_script'    => ['required', 'string'],
+            'outcome_description' => ['required', 'string'],
         ]);
 
+        // Create task
+        $task = AdScriptTask::create([
+            'reference_script'    => $data['reference_script'],
+            'outcome_description' => $data['outcome_description'],
+            'status'              => 'pending',
+        ]);
+
+        // Dispatch job
         SendToN8nJob::dispatch($task->id);
 
+        // Return 201 to satisfy the test
         return response()->json([
-            'id' => $task->id,
+            'id'     => $task->id,
             'status' => $task->status,
-        ], Response::HTTP_ACCEPTED);
+        ], 201);
     }
 
     // POST /api/ad-scripts/{id}/result
