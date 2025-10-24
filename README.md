@@ -8,7 +8,7 @@ The goal:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### System Diagram (Mermaid)
 ```mermaid
@@ -230,16 +230,3 @@ melioraweb-task/
 │   └── ad_script_agent_workflow.json
 └── README.md
 ```
-
-#### Features Summary
-```swift
-Laravel 10 + PHP 8.2
-MySQL 8
-n8n workflow with GPT-4o
-Asynchronous job queue
-Secure callback with bearer token
-Dockerized environment
-Step-by-step documentation
-```
-👨‍💻 Author
-Vladimir Miloshev
