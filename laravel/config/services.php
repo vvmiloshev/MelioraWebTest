@@ -35,6 +35,7 @@ return [
         'base_url'     => env('N8N_BASE_URL'),
         'webhook_path' => env('N8N_WEBHOOK_PATH', 'ad-script-agent'),
         'token'        => env('N8N_API_TOKEN'),
+        'slack_failures' => env('N8N_SLACK_WEBHOOK_URL'),
     ],
     'callbacks' => [
         'bearer_token' => env('CALLBACKS_BEARER_TOKEN'),

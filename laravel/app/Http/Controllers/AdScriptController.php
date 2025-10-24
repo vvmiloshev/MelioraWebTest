@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AdScriptTaskUpdated;
 use App\Http\Requests\StoreAdScriptRequest;
 use App\Jobs\SendToN8nJob;
 use App\Models\AdScriptTask;
@@ -30,6 +31,8 @@ class AdScriptController extends Controller
         // Dispatch job
         SendToN8nJob::dispatch($task->id);
 
+        event(new AdScriptTaskUpdated($task));
+
         // Return 201 to satisfy the test
         return response()->json([
             'id'     => $task->id,
@@ -57,6 +60,8 @@ class AdScriptController extends Controller
             'analysis' => $validated['analysis'],
             'status' => 'completed',
         ]);
+
+        event(new AdScriptTaskUpdated($task));
 
         return response()->json(['ok' => true]);
     }
